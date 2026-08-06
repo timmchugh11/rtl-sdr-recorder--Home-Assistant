@@ -28,6 +28,10 @@ The default 447.7 MHz centre and 4 MS/s rate nominally cover 445.7–449.7 MHz,
 including all PMR446 channels and the editable 449 MHz project area. Frequencies
 outside the usable Nyquist span are ignored with a clear log warning.
 
+All 16 standard analogue PMR446 channels are prepopulated. Only the proven
+PMR446 channel 13 is enabled on first start. Enable further channels from the
+Frequency page after observing CPU headroom on the Home Assistant host.
+
 > The Pluto and its transport must sustain the configured rate. Start with a
 > smaller span if the Home Assistant host or USB/network link drops buffers.
 
@@ -89,7 +93,11 @@ the proven Windows hardware reference.
 ## Initial limitations
 
 - Analogue narrow FM only; digital PMR and CTCSS/DCS detection are not decoded.
-- CPU use scales with enabled channels. Disable unused channels on smaller hosts.
+- CPU use currently scales linearly with enabled channels. On the development
+  CPU, 16 channels took 3.2× the realtime budget while approximately four fit.
+  Channel 13 alone is therefore the safe initial default. A shared FFT/polyphase
+  filter-bank channeliser is the recommended optimisation before enabling a
+  large full-span plan on smaller Home Assistant hosts.
 - The initial UI shows one active-channel waveform and a compact spectrum, not
   streamed audio monitoring.
 - Recovered partial WAV files are preserved but not automatically indexed,

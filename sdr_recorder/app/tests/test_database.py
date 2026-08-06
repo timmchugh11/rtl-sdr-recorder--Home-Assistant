@@ -9,6 +9,7 @@ def test_database_seeds_sixteen_pmr_channels(tmp_path):
     assert len(rows) == 16
     assert rows[0]["frequency_hz"] == 446_006_250
     assert rows[-1]["frequency_hz"] == 446_193_750
+    assert [row["name"] for row in rows if row["enabled"]] == ["PMR446 Ch13"]
 
 
 def test_frequency_crud(tmp_path):

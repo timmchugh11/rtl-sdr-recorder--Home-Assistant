@@ -69,13 +69,14 @@ class Database:
             if count == 0:
                 now = datetime.now(timezone.utc).isoformat()
                 rows = [
-                    (446_006_250 + index * 12_500, f"PMR446 Ch{index + 1}", "PMR446", now, now)
+                    (446_006_250 + index * 12_500, f"PMR446 Ch{index + 1}", "PMR446",
+                     1 if index == 12 else 0, now, now)
                     for index in range(16)
                 ]
                 db.executemany(
                     """INSERT INTO frequencies
-                    (frequency_hz,name,category,created_at,updated_at)
-                    VALUES (?,?,?,?,?)""",
+                    (frequency_hz,name,category,enabled,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?)""",
                     rows,
                 )
 
@@ -87,7 +88,7 @@ class Database:
         query = "SELECT * FROM frequencies"
         if enabled_only:
             query += " WHERE enabled=1"
-        query += " ORDER BY category,name,frequency_hz"
+        query += " ORDER BY category,frequency_hz,name"
         with self.connect() as db:
             return [dict(row) for row in db.execute(query)]
 
@@ -105,7 +106,8 @@ class Database:
                 (item.frequency_hz, item.name, item.category, item.enabled, item.squelch_dbfs,
                  item.record_enabled, item.retention_days, now, now),
             )
-            return self.frequency(cursor.lastrowid) or {}
+            frequency_id = cursor.lastrowid
+        return self.frequency(frequency_id) or {}
 
     def update_frequency(self, frequency_id: int, item: FrequencyBase) -> dict | None:
         now = datetime.now(timezone.utc).isoformat()

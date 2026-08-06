@@ -1,5 +1,5 @@
 name: SDR Radio Recorder
-version: "0.1.0"
+version: "0.1.1"
 slug: sdr_recorder
 description: Receive-only multi-channel NFM recorder with an Ingress library
 url: https://github.com/timmc/rtl-sdr-recorder--Home-Assistant

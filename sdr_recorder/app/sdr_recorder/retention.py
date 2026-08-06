@@ -16,11 +16,14 @@ def apply_retention(database: Database, settings: Settings) -> dict:
     if settings.retention_days <= 0 and settings.max_storage_mb <= 0:
         return {"enabled": False, "deleted": 0, "freed_bytes": 0}
     root = Path(settings.recordings_path)
-    library = database.recordings(page=1, page_size=200)["items"]
-    # Walk all pages without loading audio data.
-    total = database.recordings(page=1, page_size=1)["total"]
-    if total > 200:
-        library = database.recordings(page=1, page_size=min(total, 100000))["items"]
+    library: list[dict] = []
+    page = 1
+    while True:
+        result = database.recordings(page=page, page_size=200)
+        library.extend(result["items"])
+        if len(library) >= result["total"]:
+            break
+        page += 1
     candidates: list[dict] = []
     cutoff = datetime.now(timezone.utc) - timedelta(days=settings.retention_days) if settings.retention_days else None
     for row in reversed(library):

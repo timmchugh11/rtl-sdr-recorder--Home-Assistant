@@ -38,7 +38,10 @@ class NFMChannel:
         self._fine_decimation = self._fine_rate // self.FM_RATE
         self._coarse_sos = signal.butter(6, 20_000, btype="lowpass", fs=input_rate, output="sos")
         self._coarse_state = np.zeros((self._coarse_sos.shape[0], 2), dtype=np.complex64)
-        self._channel_taps = signal.firwin(101, 8_000, fs=self._fine_rate)
+        # A 12.5 kHz PMR channel has a 6.25 kHz half-width. The long Kaiser FIR
+        # prevents a strong carrier from opening neighbouring channel squelches.
+        self._channel_taps = signal.firwin(301, 6_000, fs=self._fine_rate,
+                                           window=("kaiser", 8.6))
         self._channel_state = np.zeros(len(self._channel_taps) - 1, dtype=np.complex64)
         self._voice_sos = signal.butter(6, (300, 3_000), btype="bandpass",
                                         fs=self.FM_RATE, output="sos")

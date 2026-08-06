@@ -1,0 +1,4 @@
+app/tests/
+app/pyproject.toml
+**/__pycache__/
+**/*.py[cod]

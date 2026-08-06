@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Fix Home Assistant local builds by pinning the Dockerfile directly to the
+  multi-architecture Debian Python image. Supervisor can no longer substitute
+  its Alpine base, where `apt-get` and packaged libiio are unavailable.
+- Remove the ambiguous `BUILD_FROM` argument and its Docker warning.
+
 ## 0.1.0
 
 - Initial GitHub-installable add-on.

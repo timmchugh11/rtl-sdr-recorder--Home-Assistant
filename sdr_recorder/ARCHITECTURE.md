@@ -39,3 +39,9 @@ Home Assistant ◀── non-blocking publisher queue and Supervisor token
 The receiver is independent of browser connections. WebSockets carry compact
 live state, spectrum bins, and waveform points. Audio files are served from disk
 with `FileResponse`, not loaded into application memory.
+
+The initial per-frequency DDC is intentionally simple and testable, but its CPU
+cost scales linearly. A benchmark on the development host measured the default
+4 MS/s × 16-channel workload at 3.2 times realtime. Only proven channel 13 is
+enabled initially. Replacing the per-channel wide-rate mixers with a shared FFT
+or polyphase filter bank is the next receiver-performance milestone.

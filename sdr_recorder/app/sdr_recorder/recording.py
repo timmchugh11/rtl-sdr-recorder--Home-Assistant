@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import queue
+import struct
 import threading
 import wave
 from dataclasses import dataclass
@@ -64,6 +65,14 @@ class RecordingWorker:
         for path in self.root.rglob("*.partial.wav"):
             recovered = path.with_name(path.name.replace(".partial.wav", ".recovered.wav"))
             try:
+                # wave writes a standard 44-byte PCM header up front, but its
+                # length fields are finalised only on close. Repair those two
+                # fields after an unclean stop so the preserved audio is usable.
+                size = path.stat().st_size
+                if size >= 44:
+                    with path.open("r+b") as wav:
+                        wav.seek(4); wav.write(struct.pack("<I", size - 8))
+                        wav.seek(40); wav.write(struct.pack("<I", size - 44))
                 path.replace(recovered)
                 LOG.warning("Recovered interrupted recording as %s", recovered)
             except OSError:
