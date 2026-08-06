@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.1
+
+- Cache each channel's digital oscillator block and carry phase between SDR
+  reads instead of recalculating millions of complex exponentials per block.
+- Restore enough processing headroom to prevent dropped IQ buffers and
+  accelerated WAV playback in the two-channel 4 MS/s configuration.
+
 ## 0.3.0
 
 - Add persistent per-frequency tuning correction in hertz.

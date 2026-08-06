@@ -58,6 +58,10 @@ class NFMChannel:
         self._fine_count = 0
         self._audio_count = 0
         self._previous_iq: complex | None = None
+        self._mix_offset = self.frequency_hz - self.center_hz
+        self._mix_block: np.ndarray | None = None
+        self._mix_phase = 1.0 + 0.0j
+        self._mix_step = np.exp(-2j * np.pi * self._mix_offset / self.input_rate)
 
     def process(self, raw: np.ndarray, first_sample: int) -> ChannelResult:
         if self._proven_direct:
@@ -71,9 +75,16 @@ class NFMChannel:
             channel_iq = filtered[start::self.input_rate // self.FM_RATE]
             self._input_count += len(raw)
         else:
-            offset = self.frequency_hz - self.center_hz
-            indexes = np.arange(len(raw), dtype=np.float64) + first_sample
-            mixed = raw * np.exp(-2j * np.pi * offset * indexes / self.input_rate)
+            # SDR block lengths are stable. Cache one NCO block rather than
+            # evaluating millions of complex exponentials per channel for
+            # every read; carry only a scalar phase between blocks.
+            if self._mix_block is None or len(self._mix_block) != len(raw):
+                self._mix_block = np.power(
+                    self._mix_step, np.arange(len(raw), dtype=np.int64)
+                ).astype(np.complex64)
+            mixed = raw * (self._mix_block * self._mix_phase)
+            self._mix_phase *= self._mix_step ** len(raw)
+            self._mix_phase /= abs(self._mix_phase)
             coarse, self._coarse_state = signal.sosfilt(self._coarse_sos, mixed, zi=self._coarse_state)
             start = (-self._input_count) % self._coarse_decimation
             coarse = coarse[start::self._coarse_decimation]
