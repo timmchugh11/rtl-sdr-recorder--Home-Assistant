@@ -101,7 +101,7 @@ class ReceiverEngine:
             row["id"]: NFMChannel(
                 row["frequency_hz"], self.settings.center_frequency_hz,
                 self.settings.sample_rate_hz, self.settings.audio_sample_rate_hz,
-                row["squelch_dbfs"],
+                row["squelch_dbfs"], self.settings.audio_gain,
             ) for row in valid
         }
         chunks_per_pre_roll = round(
@@ -190,13 +190,18 @@ class ReceiverEngine:
 
         if session["open"]:
             if row["record_enabled"] and result.audio.size:
-                self.writer.submit(AudioChunk(key, result.audio.copy()))
+                # Keep a single file open across short carrier gaps without
+                # putting demodulated RF noise into the recording.
+                audio = result.audio if result.carrier else np.zeros_like(result.audio)
+                self.writer.submit(AudioChunk(key, audio.copy()))
             if not result.carrier:
                 session["post"] -= seconds
                 if session["post"] <= 0:
                     self._close_session(key, row, session)
         elif session["pre"].maxlen and result.audio.size:
-            session["pre"].append(result.audio.copy())
+            # Closed-squelch pre-roll represents elapsed time, not audible RF
+            # noise. The opening chunk still contains the speech onset.
+            session["pre"].append(np.zeros_like(result.audio))
 
     def _close_session(self, key: int, row: dict, session: dict) -> None:
         if not session["open"]:

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2
+
+- Lower the default NFM audio gain to prevent loud, clipped recordings.
+- Make audio gain configurable from the add-on options.
+- Increase the default post-roll to two seconds so normal pauses do not split an announcement.
+
 ## 0.1.1
 
 - Fix Home Assistant local builds by pinning the Dockerfile directly to the

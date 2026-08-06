@@ -8,8 +8,7 @@ SQLite recording index, generated mock input, and persistent media storage.
 
 1. Publish this repository to GitHub.
 2. In Home Assistant, open **Settings → Add-ons → Add-on Store → ⋮ → Repositories**.
-3. Add `https://github.com/timmc/rtl-sdr-recorder--Home-Assistant` (substitute the
-   actual repository URL if different).
+3. Add `https://github.com/timmchugh11/rtl-sdr-recorder--Home-Assistant`.
 4. Install **SDR Radio Recorder**.
 5. Start with `source: mock`, open the Web UI, and verify the generated channel
    activity and recordings.
@@ -23,6 +22,16 @@ address. `ip:pluto.local` is also supported. A native libiio URI such as
 `usb:1.2.5` can be used when USB forwarding exposes the IIO interface to the
 add-on. The container includes libiio and requests USB access, but is not
 privileged. The add-on never creates a TX buffer or changes a TX property.
+
+Speech level and recording boundaries can be tuned from the add-on options:
+
+- `audio_gain`: WAV output level after NFM demodulation (`0.08` by default).
+- `pre_roll_seconds`: audio retained before squelch opens (`0.25` by default).
+- `post_roll_seconds`: time to keep one recording open through brief carrier
+  gaps and speech pauses (`2.0` by default).
+
+Home Assistant preserves saved options during upgrades. When upgrading from
+0.1.1 or earlier, set these values explicitly on the Configuration page.
 
 The default 447.7 MHz centre and 4 MS/s rate nominally cover 445.7–449.7 MHz,
 including all PMR446 channels and the editable 449 MHz project area. Frequencies

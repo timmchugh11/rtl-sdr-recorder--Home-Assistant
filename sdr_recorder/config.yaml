@@ -1,8 +1,8 @@
 name: SDR Radio Recorder
-version: "0.1.1"
+version: "0.1.2"
 slug: sdr_recorder
 description: Receive-only multi-channel NFM recorder with an Ingress library
-url: https://github.com/timmc/rtl-sdr-recorder--Home-Assistant
+url: https://github.com/timmchugh11/rtl-sdr-recorder--Home-Assistant
 arch:
   - amd64
   - aarch64
@@ -27,8 +27,9 @@ options:
   gain_mode: manual
   gain_db: 0
   audio_sample_rate_hz: 10000
+  audio_gain: 0.08
   pre_roll_seconds: 0.25
-  post_roll_seconds: 0.25
+  post_roll_seconds: 2.0
   recordings_path: /media/sdr_recorder
   retention_days: 0
   max_storage_mb: 0
@@ -43,6 +44,7 @@ schema:
   gain_mode: list(manual|slow_attack|fast_attack)
   gain_db: float(-10,73)
   audio_sample_rate_hz: int(8000,48000)
+  audio_gain: float(0.01,1)
   pre_roll_seconds: float(0,5)
   post_roll_seconds: float(0,10)
   recordings_path: str
