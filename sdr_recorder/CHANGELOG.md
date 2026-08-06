@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+- Add persistent per-frequency tuning correction in hertz.
+- Apply correction in each independent digital down-converter before filtering.
+- Seed measured corrections for PMR13, 449.312500, and 449.400000 MHz.
+- Default to the verified PMR13/449.400 two-channel 4 MS/s capture span.
+- Show and edit tuning correction from the Ingress Frequency page.
+
 ## 0.2.3
 
 - Make the proven centred PMR446 Channel 13 capture the first-run default.

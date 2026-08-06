@@ -99,7 +99,8 @@ class ReceiverEngine:
         self._frequency_rows = {row["id"]: row for row in valid}
         self._channels = {
             row["id"]: NFMChannel(
-                row["frequency_hz"], self.settings.center_frequency_hz,
+                row["frequency_hz"] + (row.get("correction_hz", 0) if self.settings.source == "pluto" else 0),
+                self.settings.center_frequency_hz,
                 self.settings.sample_rate_hz, self.settings.audio_sample_rate_hz,
                 row["squelch_dbfs"], self.settings.audio_gain,
             ) for row in valid
@@ -160,6 +161,7 @@ class ReceiverEngine:
                 item = {
                     "id": key, "frequency_hz": row["frequency_hz"], "name": row["name"],
                     "category": row["category"], "signal_dbfs": round(result.signal_dbfs, 2),
+                    "correction_hz": row.get("correction_hz", 0),
                     "squelch_open": session["open"], "recording": session["open"] and bool(row["record_enabled"]),
                     "last_heard_at": row.get("last_heard_at"),
                 }

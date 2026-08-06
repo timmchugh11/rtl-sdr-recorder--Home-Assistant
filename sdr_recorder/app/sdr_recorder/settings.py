@@ -11,11 +11,10 @@ from typing import Any
 class Settings:
     source: str = "mock"
     uri: str = "ip:192.168.2.1"
-    # Start with the hardware-proven PMR13 capture. Wideband mode remains
-    # configurable in Ingress but is not the safe first-run default.
-    center_frequency_hz: int = 446_156_250
-    sample_rate_hz: int = 1_000_000
-    rf_bandwidth_hz: int = 200_000
+    # Midpoint of PMR13 and 449.400 MHz, verified with two corrected DDCs.
+    center_frequency_hz: int = 447_778_125
+    sample_rate_hz: int = 4_000_000
+    rf_bandwidth_hz: int = 4_000_000
     gain_mode: str = "manual"
     gain_db: float = 0.0
     audio_sample_rate_hz: int = 10_000

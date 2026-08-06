@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import threading
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -15,12 +16,17 @@ class Database:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
 
-    def connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def connect(self):
         connection = sqlite3.connect(self.path, timeout=30)
-        connection.row_factory = sqlite3.Row
-        connection.execute("PRAGMA journal_mode=WAL")
-        connection.execute("PRAGMA foreign_keys=ON")
-        return connection
+        try:
+            connection.row_factory = sqlite3.Row
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute("PRAGMA foreign_keys=ON")
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     def initialise(self) -> None:
         with self._lock, self.connect() as db:
@@ -33,6 +39,7 @@ class Database:
                     category TEXT NOT NULL DEFAULT '',
                     enabled INTEGER NOT NULL DEFAULT 1,
                     squelch_dbfs REAL NOT NULL DEFAULT -45,
+                    correction_hz INTEGER NOT NULL DEFAULT 0,
                     record_enabled INTEGER NOT NULL DEFAULT 1,
                     retention_days INTEGER NOT NULL DEFAULT 0,
                     last_heard_at TEXT,
@@ -65,7 +72,12 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_recordings_category ON recordings(category);
                 """
             )
+            columns = {row[1] for row in db.execute("PRAGMA table_info(frequencies)")}
+            added_correction = "correction_hz" not in columns
+            if "correction_hz" not in columns:
+                db.execute("ALTER TABLE frequencies ADD COLUMN correction_hz INTEGER NOT NULL DEFAULT 0")
             count = db.execute("SELECT COUNT(*) FROM frequencies").fetchone()[0]
+            seeded = count == 0
             if count == 0:
                 now = datetime.now(timezone.utc).isoformat()
                 rows = [
@@ -79,6 +91,35 @@ class Database:
                     VALUES (?,?,?,?,?,?)""",
                     rows,
                 )
+                db.executemany(
+                    """INSERT INTO frequencies
+                    (frequency_hz,name,category,enabled,squelch_dbfs,correction_hz,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,?,?)""",
+                    [
+                        (449_312_500, "449.312500", "449 MHz", 0, -60, 7048, now, now),
+                        (449_400_000, "449.400000", "449 MHz", 1, -60, 7031, now, now),
+                    ],
+                )
+            if added_correction or seeded:
+                # One-time defaults measured with this project's Pluto/radios.
+                # Later user edits, including an intentional zero, are retained.
+                if added_correction:
+                    now = datetime.now(timezone.utc).isoformat()
+                    db.execute(
+                        """INSERT OR IGNORE INTO frequencies
+                        (frequency_hz,name,category,enabled,squelch_dbfs,correction_hz,created_at,updated_at)
+                        VALUES (449312500,'449.312500','449 MHz',0,-60,7048,?,?)""",
+                        (now, now),
+                    )
+                    db.execute(
+                        """INSERT OR IGNORE INTO frequencies
+                        (frequency_hz,name,category,enabled,squelch_dbfs,correction_hz,created_at,updated_at)
+                        VALUES (449400000,'449.400000','449 MHz',1,-60,7031,?,?)""",
+                        (now, now),
+                    )
+                db.execute("UPDATE frequencies SET correction_hz=7648 WHERE frequency_hz=446156250")
+                db.execute("UPDATE frequencies SET correction_hz=7048 WHERE frequency_hz=449312500")
+                db.execute("UPDATE frequencies SET correction_hz=7031 WHERE frequency_hz=449400000")
 
     @staticmethod
     def _row(row: sqlite3.Row | None) -> dict[str, Any] | None:
@@ -101,10 +142,10 @@ class Database:
         with self._lock, self.connect() as db:
             cursor = db.execute(
                 """INSERT INTO frequencies
-                (frequency_hz,name,category,enabled,squelch_dbfs,record_enabled,retention_days,created_at,updated_at)
-                VALUES (?,?,?,?,?,?,?,?,?)""",
+                (frequency_hz,name,category,enabled,squelch_dbfs,correction_hz,record_enabled,retention_days,created_at,updated_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?)""",
                 (item.frequency_hz, item.name, item.category, item.enabled, item.squelch_dbfs,
-                 item.record_enabled, item.retention_days, now, now),
+                 item.correction_hz, item.record_enabled, item.retention_days, now, now),
             )
             frequency_id = cursor.lastrowid
         return self.frequency(frequency_id) or {}
@@ -114,9 +155,9 @@ class Database:
         with self._lock, self.connect() as db:
             db.execute(
                 """UPDATE frequencies SET frequency_hz=?,name=?,category=?,enabled=?,squelch_dbfs=?,
-                record_enabled=?,retention_days=?,updated_at=? WHERE id=?""",
+                correction_hz=?,record_enabled=?,retention_days=?,updated_at=? WHERE id=?""",
                 (item.frequency_hz, item.name, item.category, item.enabled, item.squelch_dbfs,
-                 item.record_enabled, item.retention_days, now, frequency_id),
+                 item.correction_hz, item.record_enabled, item.retention_days, now, frequency_id),
             )
         return self.frequency(frequency_id)
 

@@ -51,7 +51,7 @@
 
     <section id="page-frequencies" class="page">
       <div class="page-title"><div><span class="eyebrow">Channel plan</span><h1>Frequencies</h1></div><button id="add-frequency" class="primary">Add frequency</button></div>
-      <article class="card table-wrap"><table><thead><tr><th>On</th><th>Name</th><th>Frequency</th><th>Category</th><th>Squelch</th><th>Record</th><th>Last heard</th><th></th></tr></thead><tbody id="frequency-body"></tbody></table></article>
+      <article class="card table-wrap"><table><thead><tr><th>On</th><th>Name</th><th>Frequency</th><th>Correction</th><th>Category</th><th>Squelch</th><th>Record</th><th>Last heard</th><th></th></tr></thead><tbody id="frequency-body"></tbody></table></article>
     </section>
 
     <section id="page-settings" class="page">
@@ -80,6 +80,7 @@
     <label>Friendly name<input id="frequency-name" maxlength="80"></label>
     <label>Group / category<input id="frequency-category" maxlength="80" list="category-options"><datalist id="category-options"><option value="PMR446"><option value="449 MHz"></datalist></label>
     <label>Squelch threshold (dBFS)<input id="frequency-squelch" type="number" min="-120" max="10" step="0.1" value="-45"></label>
+    <label>Tuning correction (Hz)<input id="frequency-correction" type="number" min="-50000" max="50000" step="1" value="0"></label>
     <label>Retention days (0 uses global setting)<input id="frequency-retention" type="number" min="0" max="3650" value="0"></label>
     <div class="check-row"><label><input id="frequency-enabled" type="checkbox" checked> Enabled</label><label><input id="frequency-record" type="checkbox" checked> Record activity</label></div>
     <div class="dialog-actions"><button type="button" data-close>Cancel</button><button class="primary" type="submit">Save</button></div></form></dialog>

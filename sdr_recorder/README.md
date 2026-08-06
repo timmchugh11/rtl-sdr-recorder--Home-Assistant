@@ -46,6 +46,12 @@ All 16 standard analogue PMR446 channels are prepopulated. Only the proven
 PMR446 channel 13 is enabled on first start. Enable further channels from the
 Frequency page after observing CPU headroom on the Home Assistant host.
 
+Each frequency has an editable tuning correction in hertz. Correction is
+applied only to the digital receiver; filenames and metadata retain the nominal
+channel frequency. Measurements for this project seeded PMR13 at `+7648 Hz`,
+449.312500 at `+7048 Hz`, and 449.400000 at `+7031 Hz`. These values compensate
+the tested SDR/transmitters and can be changed from the Frequency page.
+
 > The Pluto and its transport must sustain the configured rate. Start with a
 > smaller span if the Home Assistant host or USB/network link drops buffers.
 

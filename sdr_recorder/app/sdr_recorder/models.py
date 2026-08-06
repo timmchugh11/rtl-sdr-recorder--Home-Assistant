@@ -11,6 +11,7 @@ class FrequencyBase(BaseModel):
     category: str = Field(default="", max_length=80)
     enabled: bool = True
     squelch_dbfs: float = Field(default=-45.0, ge=-120, le=10)
+    correction_hz: int = Field(default=0, ge=-50_000, le=50_000)
     record_enabled: bool = True
     retention_days: int = Field(default=0, ge=0, le=3650)
 
