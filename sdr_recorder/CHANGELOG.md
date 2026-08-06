@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- Buffer brief squelch detector dropouts instead of replacing speech blocks
+  immediately with silence.
+- Confirm sustained carrier loss before gating RF noise.
+- Synchronise the backend version reported by diagnostics with the add-on.
+
 ## 0.2.0
 
 - Add editable receiver, audio, pre/post-roll, and retention settings to Ingress.

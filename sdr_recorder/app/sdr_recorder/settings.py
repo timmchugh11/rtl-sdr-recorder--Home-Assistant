@@ -18,6 +18,7 @@ class Settings:
     gain_db: float = 0.0
     audio_sample_rate_hz: int = 10_000
     audio_gain: float = 0.08
+    squelch_grace_seconds: float = 0.35
     pre_roll_seconds: float = 0.25
     post_roll_seconds: float = 2.0
     recordings_path: str = "/media/sdr_recorder"

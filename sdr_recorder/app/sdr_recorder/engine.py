@@ -109,7 +109,7 @@ class ReceiverEngine:
         )
         self._sessions = {
             row["id"]: {"open": False, "post": 0.0, "pre": deque(maxlen=max(0, chunks_per_pre_roll)),
-                        "levels": [], "started": None}
+                        "levels": [], "started": None, "gap": 0.0, "pending": []}
             for row in valid
         }
         LOG.info("Monitoring %d frequencies from one %.3f MS/s IQ stream", len(valid),
@@ -186,14 +186,27 @@ class ReceiverEngine:
                 if row["record_enabled"]:
                     self.writer.submit(StartRecording(key, row, session["started"], list(session["pre"])))
                 session["pre"].clear()
+            elif row["record_enabled"] and session["pending"]:
+                # A brief detector dropout was not a real end of carrier. Keep
+                # the buffered speech instead of chopping a hole in the WAV.
+                for pending in session["pending"]:
+                    self.writer.submit(AudioChunk(key, pending))
+            session["pending"] = []
+            session["gap"] = 0.0
             session["levels"].append(result.signal_dbfs)
 
         if session["open"]:
             if row["record_enabled"] and result.audio.size:
-                # Keep a single file open across short carrier gaps without
-                # putting demodulated RF noise into the recording.
-                audio = result.audio if result.carrier else np.zeros_like(result.audio)
-                self.writer.submit(AudioChunk(key, audio.copy()))
+                if result.carrier:
+                    self.writer.submit(AudioChunk(key, result.audio.copy()))
+                else:
+                    session["pending"].append(result.audio.copy())
+                    session["gap"] += seconds
+                    if session["gap"] >= self.settings.squelch_grace_seconds:
+                        # Confirmed carrier loss: preserve timing but gate noise.
+                        for pending in session["pending"]:
+                            self.writer.submit(AudioChunk(key, np.zeros_like(pending)))
+                        session["pending"] = []
             if not result.carrier:
                 session["post"] -= seconds
                 if session["post"] <= 0:
@@ -208,9 +221,11 @@ class ReceiverEngine:
             return
         finished = datetime.now(timezone.utc)
         if row["record_enabled"]:
+            for pending in session["pending"]:
+                self.writer.submit(AudioChunk(key, np.zeros_like(pending)))
             self.writer.submit(FinishRecording(key, finished, session["levels"][:]))
         self._event("transmission_ended", {"frequency_hz": row["frequency_hz"], "name": row["name"]})
-        session.update(open=False, post=0.0, levels=[], started=None)
+        session.update(open=False, post=0.0, levels=[], started=None, gap=0.0, pending=[])
 
     def _finish_all(self) -> None:
         for key, session in list(self._sessions.items()):
