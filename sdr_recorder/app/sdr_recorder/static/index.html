@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <base href="./">
+  <title>SDR Recorder</title>
+  <link rel="stylesheet" href="static/app.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span class="brand-mark">◉</span><div><strong>SDR Recorder</strong><small>Wideband NFM receiver</small></div></div>
+    <div id="connection-pill" class="pill offline"><span></span>Connecting</div>
+  </header>
+  <nav class="tabs" aria-label="Main navigation">
+    <button data-page="live" class="active">Receiver</button>
+    <button data-page="recordings">Recordings</button>
+    <button data-page="frequencies">Frequencies</button>
+    <button data-page="settings">Settings</button>
+  </nav>
+  <main>
+    <section id="page-live" class="page active">
+      <div class="hero-grid">
+        <article class="card receiver-card">
+          <div class="card-heading"><div><span class="eyebrow">Receiver</span><h1 id="receiver-title">Waiting for receiver</h1></div>
+            <div class="actions"><button id="receiver-toggle" class="primary">Start</button><button id="reconnect">Reconnect</button></div></div>
+          <div class="metrics">
+            <div><span>Centre</span><strong id="metric-centre">—</strong></div>
+            <div><span>Sample rate</span><strong id="metric-rate">—</strong></div>
+            <div><span>Gain</span><strong id="metric-gain">—</strong></div>
+            <div><span>Active</span><strong id="metric-active">—</strong></div>
+          </div>
+          <div id="receiver-error" class="error hidden"></div>
+        </article>
+        <article class="card storage-card"><span class="eyebrow">Library today</span><strong id="today-count" class="big-number">0</strong><small id="storage-used">0 MB stored</small></article>
+      </div>
+      <div class="visual-grid">
+        <article class="card"><div class="card-heading"><div><span class="eyebrow">Wideband view</span><h2>Spectrum</h2></div><small id="spectrum-range"></small></div><canvas id="spectrum" height="180"></canvas></article>
+        <article class="card"><div class="card-heading"><div><span class="eyebrow">Active channel</span><h2>Audio waveform</h2></div><span id="recording-badge" class="recording-badge hidden">● REC</span></div><canvas id="waveform" height="180"></canvas></article>
+      </div>
+      <article class="card"><div class="card-heading"><div><span class="eyebrow">Configured channels</span><h2>Live activity</h2></div></div><div id="channel-grid" class="channel-grid empty">No channels loaded</div></article>
+    </section>
+
+    <section id="page-recordings" class="page">
+      <div class="page-title"><div><span class="eyebrow">Audio library</span><h1>Recordings</h1></div><button id="bulk-delete" class="danger" disabled>Delete selected</button></div>
+      <article class="card filters"><input id="recording-search" placeholder="Search name, label or frequency"><input id="date-from" type="date"><input id="date-to" type="date"><select id="category-filter"><option value="">All categories</option></select><button id="apply-filters">Filter</button></article>
+      <div id="recording-list" class="recording-list"></div>
+      <div class="pager"><button id="prev-page">Previous</button><span id="page-label">Page 1</span><button id="next-page">Next</button></div>
+    </section>
+
+    <section id="page-frequencies" class="page">
+      <div class="page-title"><div><span class="eyebrow">Channel plan</span><h1>Frequencies</h1></div><button id="add-frequency" class="primary">Add frequency</button></div>
+      <article class="card table-wrap"><table><thead><tr><th>On</th><th>Name</th><th>Frequency</th><th>Category</th><th>Squelch</th><th>Record</th><th>Last heard</th><th></th></tr></thead><tbody id="frequency-body"></tbody></table></article>
+    </section>
+
+    <section id="page-settings" class="page">
+      <div class="page-title"><div><span class="eyebrow">System</span><h1>Settings & diagnostics</h1></div></div>
+      <div class="settings-grid"><article class="card"><h2>Receiver configuration</h2><dl id="settings-list"></dl><p class="hint">Change add-on options in Home Assistant, then restart the add-on.</p></article>
+      <article class="card"><h2>Build</h2><dl id="build-info"></dl><button id="run-retention">Run configured retention now</button><p class="hint">Retention is disabled when both limits are zero. Protected recordings are never removed.</p></article></div>
+      <article class="card"><div class="card-heading"><h2>Recent logs</h2><button id="refresh-settings">Refresh</button></div><pre id="logs"></pre></article>
+    </section>
+  </main>
+
+  <dialog id="frequency-dialog"><form id="frequency-form"><input id="frequency-id" type="hidden"><h2 id="frequency-dialog-title">Add frequency</h2>
+    <label>Frequency (MHz)<input id="frequency-mhz" type="number" min="70" max="6000" step="0.000001" required></label>
+    <label>Friendly name<input id="frequency-name" maxlength="80"></label>
+    <label>Group / category<input id="frequency-category" maxlength="80" list="category-options"><datalist id="category-options"><option value="PMR446"><option value="449 MHz"></datalist></label>
+    <label>Squelch threshold (dBFS)<input id="frequency-squelch" type="number" min="-120" max="10" step="0.1" value="-45"></label>
+    <label>Retention days (0 uses global setting)<input id="frequency-retention" type="number" min="0" max="3650" value="0"></label>
+    <div class="check-row"><label><input id="frequency-enabled" type="checkbox" checked> Enabled</label><label><input id="frequency-record" type="checkbox" checked> Record activity</label></div>
+    <div class="dialog-actions"><button type="button" data-close>Cancel</button><button class="primary" type="submit">Save</button></div></form></dialog>
+  <div id="toast" role="status"></div>
+  <script src="static/app.js" defer></script>
+</body>
+</html>

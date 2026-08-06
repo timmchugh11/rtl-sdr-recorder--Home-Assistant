@@ -1,0 +1,57 @@
+name: SDR Radio Recorder
+version: "0.1.0"
+slug: sdr_recorder
+description: Receive-only multi-channel NFM recorder with an Ingress library
+url: https://github.com/timmc/rtl-sdr-recorder--Home-Assistant
+arch:
+  - amd64
+  - aarch64
+startup: application
+boot: auto
+init: false
+ingress: true
+ingress_port: 8099
+panel_icon: mdi:radio-tower
+panel_title: SDR Recorder
+homeassistant_api: true
+usb: true
+map:
+  - type: media
+    read_only: false
+options:
+  source: pluto
+  uri: ip:192.168.2.1
+  center_frequency_hz: 447700000
+  sample_rate_hz: 4000000
+  rf_bandwidth_hz: 4000000
+  gain_mode: manual
+  gain_db: 0
+  audio_sample_rate_hz: 10000
+  pre_roll_seconds: 0.25
+  post_roll_seconds: 0.25
+  recordings_path: /media/sdr_recorder
+  retention_days: 0
+  max_storage_mb: 0
+  auto_start: true
+  debug: false
+schema:
+  source: list(pluto|mock)
+  uri: str
+  center_frequency_hz: int(70000000,6000000000)
+  sample_rate_hz: int(520834,20000000)
+  rf_bandwidth_hz: int(200000,20000000)
+  gain_mode: list(manual|slow_attack|fast_attack)
+  gain_db: float(-10,73)
+  audio_sample_rate_hz: int(8000,48000)
+  pre_roll_seconds: float(0,5)
+  post_roll_seconds: float(0,10)
+  recordings_path: str
+  retention_days: int(0,3650)
+  max_storage_mb: int(0,1000000)
+  auto_start: bool
+  debug: bool
+ports:
+  8099/tcp: null
+ports_description:
+  8099/tcp: Direct web access (Ingress is preferred)
+watchdog: http://[HOST]:[PORT:8099]/health

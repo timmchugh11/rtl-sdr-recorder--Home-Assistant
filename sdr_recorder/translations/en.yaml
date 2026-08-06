@@ -1,0 +1,38 @@
+configuration:
+  source:
+    name: SDR source
+    description: Use pluto for hardware or mock for generated development signals.
+  uri:
+    name: Pluto IIO URI
+    description: Usually ip:192.168.2.1, ip:pluto.local, or a libiio USB URI.
+  center_frequency_hz:
+    name: Centre frequency
+    description: Centre of the one wide IQ capture in Hz.
+  sample_rate_hz:
+    name: IQ sample rate
+    description: Wide IQ capture rate in samples per second.
+  rf_bandwidth_hz:
+    name: RF bandwidth
+    description: Pluto receive RF filter bandwidth in Hz.
+  gain_mode:
+    name: Gain mode
+  gain_db:
+    name: Manual gain
+  audio_sample_rate_hz:
+    name: Audio sample rate
+  pre_roll_seconds:
+    name: Audio pre-roll
+  post_roll_seconds:
+    name: Audio post-roll
+  recordings_path:
+    name: Recording directory
+  retention_days:
+    name: Retention age
+    description: Zero disables the global age limit.
+  max_storage_mb:
+    name: Maximum storage
+    description: Zero disables the storage limit.
+  auto_start:
+    name: Start receiver automatically
+  debug:
+    name: Debug logging

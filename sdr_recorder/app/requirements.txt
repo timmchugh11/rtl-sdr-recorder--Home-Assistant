@@ -1,0 +1,9 @@
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+numpy==2.3.2
+scipy==1.16.1
+pyadi-iio==0.0.20
+pylibiio==0.25
+httpx==0.28.1
+python-multipart==0.0.20
+pydantic==2.11.7
