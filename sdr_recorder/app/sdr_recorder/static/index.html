@@ -6,6 +6,7 @@
   <base href="./">
   <title>SDR Recorder</title>
   <link rel="stylesheet" href="static/app.css">
+  <link rel="stylesheet" href="static/settings.css">
 </head>
 <body>
   <header class="topbar">
@@ -55,7 +56,20 @@
 
     <section id="page-settings" class="page">
       <div class="page-title"><div><span class="eyebrow">System</span><h1>Settings & diagnostics</h1></div></div>
-      <div class="settings-grid"><article class="card"><h2>Receiver configuration</h2><dl id="settings-list"></dl><p class="hint">Change add-on options in Home Assistant, then restart the add-on.</p></article>
+      <div class="settings-grid"><article class="card"><h2>Receiver configuration</h2><form id="settings-form" class="settings-form">
+        <label>Centre frequency (MHz)<input id="setting-centre" type="number" min="70" max="6000" step="0.000001" required></label>
+        <label>IQ sample rate (MS/s)<input id="setting-rate" type="number" min="0.55" max="20" step="0.05" required></label>
+        <label>RF bandwidth (MHz)<input id="setting-bandwidth" type="number" min="0.2" max="20" step="0.05" required></label>
+        <label>Gain mode<select id="setting-gain-mode"><option value="manual">Manual</option><option value="slow_attack">Slow attack AGC</option><option value="fast_attack">Fast attack AGC</option></select></label>
+        <label>RF gain (dB)<input id="setting-rf-gain" type="number" min="-10" max="73" step="0.5" required></label>
+        <label>Audio gain<input id="setting-audio-gain" type="number" min="0.01" max="1" step="0.01" required></label>
+        <label>Pre-roll (seconds)<input id="setting-pre-roll" type="number" min="0" max="5" step="0.05" required></label>
+        <label>Post-roll / recording hold (seconds)<input id="setting-post-roll" type="number" min="0" max="10" step="0.1" required></label>
+        <label>Retention age (days, 0 disables)<input id="setting-retention" type="number" min="0" max="3650" required></label>
+        <label>Storage limit (MB, 0 disables)<input id="setting-storage" type="number" min="0" max="1000000" required></label>
+        <div class="check-row"><label><input id="setting-auto-start" type="checkbox"> Start receiver with add-on</label><label><input id="setting-debug" type="checkbox"> Debug logging</label></div>
+        <button class="primary" type="submit">Save and apply</button><p class="hint">Saving restarts a running receiver. Device selection remains on the add-on Configuration page.</p>
+      </form></article>
       <article class="card"><h2>Build</h2><dl id="build-info"></dl><button id="run-retention">Run configured retention now</button><p class="hint">Retention is disabled when both limits are zero. Protected recordings are never removed.</p></article></div>
       <article class="card"><div class="card-heading"><h2>Recent logs</h2><button id="refresh-settings">Refresh</button></div><pre id="logs"></pre></article>
     </section>

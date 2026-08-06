@@ -4,6 +4,7 @@ import json
 import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(slots=True)
@@ -26,12 +27,29 @@ class Settings:
     debug: bool = False
     data_path: str = "/data"
 
+    DEVICE_FIELDS = ("source", "uri")
+    EDITABLE_FIELDS = (
+        "center_frequency_hz", "sample_rate_hz", "rf_bandwidth_hz", "gain_mode",
+        "gain_db", "audio_sample_rate_hz", "audio_gain", "pre_roll_seconds",
+        "post_roll_seconds", "retention_days", "max_storage_mb", "auto_start", "debug",
+    )
+
     @classmethod
     def load(cls, path: str | Path | None = None) -> "Settings":
         options_path = Path(path or os.getenv("SDR_OPTIONS_PATH", "/data/options.json"))
-        values: dict = {}
+        values: dict[str, Any] = {}
         if options_path.exists():
-            values = json.loads(options_path.read_text(encoding="utf-8"))
+            options = json.loads(options_path.read_text(encoding="utf-8"))
+            # Supervisor owns only device selection. Receiver tuning is owned
+            # by the Ingress UI and persisted independently under /data.
+            values.update({key: options[key] for key in cls.DEVICE_FIELDS if key in options})
+            if "data_path" in options:
+                values["data_path"] = options["data_path"]
+        data_path = Path(values.get("data_path", "/data"))
+        saved_path = data_path / "receiver_settings.json"
+        if saved_path.exists():
+            saved = json.loads(saved_path.read_text(encoding="utf-8"))
+            values.update({key: saved[key] for key in cls.EDITABLE_FIELDS if key in saved})
         # Local development defaults to writable project paths and mock input.
         if not Path("/data").exists():
             values.setdefault("data_path", str(Path("./dev-data").resolve()))
@@ -44,3 +62,14 @@ class Settings:
         result = asdict(self)
         result.pop("data_path", None)
         return result
+
+    def editable_dict(self) -> dict:
+        values = asdict(self)
+        return {key: values[key] for key in self.EDITABLE_FIELDS}
+
+    def save_editable(self) -> None:
+        target = Path(self.data_path) / "receiver_settings.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        temporary = target.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps(self.editable_dict(), indent=2) + "\n", encoding="utf-8")
+        temporary.replace(target)

@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .models import BulkDelete, FrequencyCreate, FrequencyUpdate, RecordingPatch
+from .models import BulkDelete, FrequencyCreate, FrequencyUpdate, ReceiverSettingsUpdate, RecordingPatch
 from .retention import apply_retention
 from .util import within
 
@@ -113,6 +113,24 @@ def create_app(context) -> FastAPI:
     def settings():
         return {"settings": context.settings.public_dict(), "version": __version__,
                 "logs": list(context.log_handler.lines)[-100:]}
+
+    @api.put("/settings")
+    def update_settings(item: ReceiverSettingsUpdate):
+        was_running = context.engine.snapshot()["running"]
+        if was_running:
+            context.engine.stop()
+        for key, value in item.model_dump().items():
+            setattr(context.settings, key, value)
+        try:
+            context.settings.save_editable()
+        except Exception:
+            if was_running:
+                context.engine.start()
+            raise
+        if was_running:
+            context.engine.start()
+        return {"ok": True, "settings": context.settings.public_dict(),
+                "receiver_restarted": was_running}
 
     @api.post("/retention/run")
     def retention(): return apply_retention(context.database, context.settings)

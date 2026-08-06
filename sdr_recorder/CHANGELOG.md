@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- Add editable receiver, audio, pre/post-roll, and retention settings to Ingress.
+- Persist application settings under `/data/receiver_settings.json`.
+- Reduce Supervisor configuration to SDR source and device URI only.
+- Apply DSP changes with a clean automatic receiver restart.
+
 ## 0.1.2
 
 - Lower the default NFM audio gain to prevent loud, clipped recordings.

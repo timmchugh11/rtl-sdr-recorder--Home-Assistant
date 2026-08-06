@@ -1,5 +1,5 @@
 name: SDR Radio Recorder
-version: "0.1.2"
+version: "0.2.0"
 slug: sdr_recorder
 description: Receive-only multi-channel NFM recorder with an Ingress library
 url: https://github.com/timmchugh11/rtl-sdr-recorder--Home-Assistant
@@ -20,38 +20,10 @@ map:
     read_only: false
 options:
   source: pluto
-  uri: ip:192.168.2.1
-  center_frequency_hz: 447700000
-  sample_rate_hz: 4000000
-  rf_bandwidth_hz: 4000000
-  gain_mode: manual
-  gain_db: 0
-  audio_sample_rate_hz: 10000
-  audio_gain: 0.08
-  pre_roll_seconds: 0.25
-  post_roll_seconds: 2.0
-  recordings_path: /media/sdr_recorder
-  retention_days: 0
-  max_storage_mb: 0
-  auto_start: true
-  debug: false
+  uri: "usb:"
 schema:
   source: list(pluto|mock)
   uri: str
-  center_frequency_hz: int(70000000,6000000000)
-  sample_rate_hz: int(520834,20000000)
-  rf_bandwidth_hz: int(200000,20000000)
-  gain_mode: list(manual|slow_attack|fast_attack)
-  gain_db: float(-10,73)
-  audio_sample_rate_hz: int(8000,48000)
-  audio_gain: float(0.01,1)
-  pre_roll_seconds: float(0,5)
-  post_roll_seconds: float(0,10)
-  recordings_path: str
-  retention_days: int(0,3650)
-  max_storage_mb: int(0,1000000)
-  auto_start: bool
-  debug: bool
 ports:
   8099/tcp: null
 ports_description:
