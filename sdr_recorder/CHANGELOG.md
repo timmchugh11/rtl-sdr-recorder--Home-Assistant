@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.3
+
+- Make the proven centred PMR446 Channel 13 capture the first-run default.
+- Prevent a reinstall from silently returning to the experimental 4 MS/s
+  wideband demodulation path.
+
 ## 0.2.2
 
 - Use the exact proven PMR demodulation pipeline for a centred 1 MS/s channel.

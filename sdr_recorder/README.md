@@ -35,9 +35,12 @@ These settings persist in `/data/receiver_settings.json`. Saving them cleanly
 restarts the receiver when it is running. The Home Assistant add-on
 Configuration page only selects `source` and `uri`.
 
-The default 447.7 MHz centre and 4 MS/s rate nominally cover 445.7–449.7 MHz,
-including all PMR446 channels and the editable 449 MHz project area. Frequencies
-outside the usable Nyquist span are ignored with a clear log warning.
+The first-run default is the proven PMR446 Channel 13 capture: 446.15625 MHz
+centre, 1 MS/s IQ, and 200 kHz RF bandwidth. The experimental 447.7 MHz centre
+and 4 MS/s mode can cover 445.7–449.7 MHz, including all PMR446 channels and the
+editable 449 MHz project area, but should only be selected after the centred
+receiver has been verified. Frequencies outside the usable Nyquist span are
+ignored with a clear log warning.
 
 All 16 standard analogue PMR446 channels are prepopulated. Only the proven
 PMR446 channel 13 is enabled on first start. Enable further channels from the
