@@ -41,7 +41,8 @@ class ReceiverEngine:
             "sample_rate_hz": settings.sample_rate_hz, "gain_db": settings.gain_db,
             "active_frequency_hz": None, "signal_dbfs": -120.0, "channels": [],
             "spectrum": [], "spectrum_start_hz": 0, "spectrum_bin_hz": 0,
-            "waveform": [], "recording": False,
+            "waveform": [], "recording": False, "realtime_ratio": 0.0,
+            "processing_ok": True,
         }
         self.writer = RecordingWorker(
             database, Path(settings.recordings_path), settings.audio_sample_rate_hz,
@@ -110,7 +111,8 @@ class ReceiverEngine:
         )
         self._sessions = {
             row["id"]: {"open": False, "post": 0.0, "pre": deque(maxlen=max(0, chunks_per_pre_roll)),
-                        "levels": [], "started": None, "gap": 0.0, "pending": []}
+                        "levels": [], "started": None, "gap": 0.0, "pending": [],
+                        "muted": False, "fade_next": False}
             for row in valid
         }
         LOG.info("Monitoring %d frequencies from one %.3f MS/s IQ stream", len(valid),
@@ -146,6 +148,10 @@ class ReceiverEngine:
         self._set_status(running=False, connected=False)
 
     def _receive_loop(self) -> None:
+        timing_started = time.monotonic()
+        timing_samples = 0
+        last_timing_update = timing_started
+        last_slow_warning = 0.0
         while not self._stop.is_set():
             if self._reload.is_set():
                 self._reload.clear(); self._load_channels()
@@ -162,6 +168,7 @@ class ReceiverEngine:
                     "id": key, "frequency_hz": row["frequency_hz"], "name": row["name"],
                     "category": row["category"], "signal_dbfs": round(result.signal_dbfs, 2),
                     "correction_hz": row.get("correction_hz", 0),
+                    "frequency_error_hz": round(result.frequency_error_hz, 1),
                     "squelch_open": session["open"], "recording": session["open"] and bool(row["record_enabled"]),
                     "last_heard_at": row.get("last_heard_at"),
                 }
@@ -169,6 +176,21 @@ class ReceiverEngine:
                 if result.carrier and (strongest is None or result.signal_dbfs > strongest[0]):
                     strongest = (result.signal_dbfs, row, result.waveform)
             self._sample_index += len(raw)
+            timing_samples += len(raw)
+            now = time.monotonic()
+            timing_changes = {}
+            if now - last_timing_update >= 2.0:
+                ratio = timing_samples / (self.settings.sample_rate_hz * (now - timing_started))
+                timing_changes = {
+                    "realtime_ratio": round(ratio, 3), "processing_ok": ratio >= 0.95,
+                }
+                if ratio < 0.95 and now - last_slow_warning >= 30:
+                    LOG.warning(
+                        "Receiver processing is only %.0f%% of real time; recordings may lose time",
+                        ratio * 100,
+                    )
+                    last_slow_warning = now
+                last_timing_update = now
             self._set_status(
                 channels=channels_status,
                 active_frequency_hz=strongest[1]["frequency_hz"] if strongest else None,
@@ -176,6 +198,7 @@ class ReceiverEngine:
                 waveform=strongest[2] if strongest else [],
                 recording=any(session["open"] and self._frequency_rows[key]["record_enabled"]
                               for key, session in self._sessions.items()),
+                **timing_changes,
             )
 
     def _handle_channel(self, key: int, row: dict, session: dict, result) -> None:
@@ -184,6 +207,8 @@ class ReceiverEngine:
             session["post"] = self.settings.post_roll_seconds
             if not session["open"]:
                 session["open"] = True
+                session["fade_next"] = True
+                session["muted"] = False
                 session["started"] = datetime.now(timezone.utc)
                 session["levels"] = []
                 self.database.heard(key, session["started"].isoformat())
@@ -196,6 +221,9 @@ class ReceiverEngine:
                 # the buffered speech instead of chopping a hole in the WAV.
                 for pending in session["pending"]:
                     self.writer.submit(AudioChunk(key, pending))
+            if session["muted"]:
+                session["fade_next"] = True
+                session["muted"] = False
             session["pending"] = []
             session["gap"] = 0.0
             session["levels"].append(result.signal_dbfs)
@@ -203,7 +231,12 @@ class ReceiverEngine:
         if session["open"]:
             if row["record_enabled"] and result.audio.size:
                 if result.carrier:
-                    self.writer.submit(AudioChunk(key, result.audio.copy()))
+                    audio = result.audio.copy()
+                    if session["fade_next"]:
+                        fade_samples = min(len(audio), max(1, self.settings.audio_sample_rate_hz // 100))
+                        audio[:fade_samples] *= np.linspace(0, 1, fade_samples, dtype=np.float32)
+                        session["fade_next"] = False
+                    self.writer.submit(AudioChunk(key, audio))
                 else:
                     session["pending"].append(result.audio.copy())
                     session["gap"] += seconds
@@ -212,6 +245,7 @@ class ReceiverEngine:
                         for pending in session["pending"]:
                             self.writer.submit(AudioChunk(key, np.zeros_like(pending)))
                         session["pending"] = []
+                        session["muted"] = True
             if not result.carrier:
                 session["post"] -= seconds
                 if session["post"] <= 0:
@@ -230,7 +264,8 @@ class ReceiverEngine:
                 self.writer.submit(AudioChunk(key, np.zeros_like(pending)))
             self.writer.submit(FinishRecording(key, finished, session["levels"][:]))
         self._event("transmission_ended", {"frequency_hz": row["frequency_hz"], "name": row["name"]})
-        session.update(open=False, post=0.0, levels=[], started=None, gap=0.0, pending=[])
+        session.update(open=False, post=0.0, levels=[], started=None, gap=0.0, pending=[],
+                       muted=False, fade_next=False)
 
     def _finish_all(self) -> None:
         for key, session in list(self._sessions.items()):

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.2
+
+- Suppress impossible FM discriminator impulses caused by discontinuous IQ blocks.
+- Fade audio in over 10 ms when squelch first opens or returns from a muted gap.
+- Report per-channel residual frequency error in the live receiver view.
+- Report real-time processing percentage and warn when throughput falls below 95%.
+
 ## 0.3.1
 
 - Cache each channel's digital oscillator block and carry phase between SDR

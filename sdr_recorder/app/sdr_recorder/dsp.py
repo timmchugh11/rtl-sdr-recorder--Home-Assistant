@@ -11,6 +11,7 @@ class ChannelResult:
     audio: np.ndarray
     signal_dbfs: float
     carrier: bool
+    frequency_error_hz: float
     waveform: list[float]
 
 
@@ -100,10 +101,21 @@ class NFMChannel:
         if self._previous_iq is not None:
             channel_iq = np.concatenate(([self._previous_iq], channel_iq))
         if not channel_iq.size:
-            return ChannelResult(np.empty(0, np.float32), level, False, [])
+            return ChannelResult(np.empty(0, np.float32), level, False, 0.0, [])
         self._previous_iq = complex(channel_iq[-1])
-        audio = np.angle(channel_iq[1:] * np.conj(channel_iq[:-1])).astype(np.float32)
-        audio, self._voice_state = signal.sosfilt(self._voice_sos, audio, zi=self._voice_state)
+        discriminator = np.angle(channel_iq[1:] * np.conj(channel_iq[:-1])).astype(np.float32)
+        carrier = level >= self.squelch_dbfs
+        frequency_error_hz = (
+            float(np.median(discriminator) * self.FM_RATE / (2 * np.pi))
+            if carrier and discriminator.size else 0.0
+        )
+        # A missing/discontinuous IQ block can create a phase impulse approaching
+        # pi radians. PMR NFM occupies a fraction of that, so clipping only these
+        # impossible excursions prevents the voice filter ringing as a crackle.
+        discriminator = np.clip(discriminator, -0.75, 0.75)
+        audio, self._voice_state = signal.sosfilt(
+            self._voice_sos, discriminator, zi=self._voice_state
+        )
         start = (-self._audio_count) % self._audio_decimation
         self._audio_count += len(audio)
         audio = audio[start::self._audio_decimation]
@@ -111,4 +123,4 @@ class NFMChannel:
         audio = np.clip(audio * self.audio_gain, -1, 1).astype(np.float32)
         stride = max(1, len(audio) // 160)
         waveform = audio[::stride][:160].astype(float).tolist()
-        return ChannelResult(audio, level, level >= self.squelch_dbfs, waveform)
+        return ChannelResult(audio, level, carrier, frequency_error_hz, waveform)
