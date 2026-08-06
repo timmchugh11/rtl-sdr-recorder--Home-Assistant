@@ -29,6 +29,13 @@ class NFMChannel:
         self.audio_rate = audio_rate
         self.squelch_dbfs = squelch_dbfs
         self.audio_gain = audio_gain
+        # Preserve the exact hardware-tested PMR13 pipeline when a 1 MS/s
+        # capture is centred on the selected channel. The wideband channeliser
+        # remains available when several offset channels are configured.
+        self._proven_direct = input_rate == 1_000_000 and frequency_hz == center_hz
+        if self._proven_direct:
+            self._direct_taps = signal.firwin(401, 8_000, fs=input_rate)
+            self._direct_state = np.zeros(len(self._direct_taps) - 1, dtype=np.complex64)
         total_decimation = input_rate // self.FM_RATE
         # Keep the final FIR near 200 kS/s. The wide-rate IIR cheaply rejects
         # energy that would alias in the first stage; the narrow FIR preserves
@@ -53,20 +60,31 @@ class NFMChannel:
         self._previous_iq: complex | None = None
 
     def process(self, raw: np.ndarray, first_sample: int) -> ChannelResult:
-        offset = self.frequency_hz - self.center_hz
-        indexes = np.arange(len(raw), dtype=np.float64) + first_sample
-        mixed = raw * np.exp(-2j * np.pi * offset * indexes / self.input_rate)
-        coarse, self._coarse_state = signal.sosfilt(self._coarse_sos, mixed, zi=self._coarse_state)
-        start = (-self._input_count) % self._coarse_decimation
-        coarse = coarse[start::self._coarse_decimation]
-        self._input_count += len(raw)
-        filtered, self._channel_state = signal.lfilter(
-            self._channel_taps, [1.0], coarse, zi=self._channel_state
-        )
-        start = (-self._fine_count) % self._fine_decimation
-        channel_iq = filtered[start::self._fine_decimation]
-        self._fine_count += len(coarse)
-        rms = float(np.sqrt(np.mean(np.abs(channel_iq) ** 2))) if channel_iq.size else 0.0
+        if self._proven_direct:
+            # This matches record_pmr13.py: measure raw RF power, then apply a
+            # stateful 8 kHz FIR and decimate directly from 1 MHz to 50 kHz.
+            rms = float(np.sqrt(np.mean(np.abs(raw) ** 2))) if raw.size else 0.0
+            filtered, self._direct_state = signal.lfilter(
+                self._direct_taps, [1.0], raw, zi=self._direct_state
+            )
+            start = (-self._input_count) % (self.input_rate // self.FM_RATE)
+            channel_iq = filtered[start::self.input_rate // self.FM_RATE]
+            self._input_count += len(raw)
+        else:
+            offset = self.frequency_hz - self.center_hz
+            indexes = np.arange(len(raw), dtype=np.float64) + first_sample
+            mixed = raw * np.exp(-2j * np.pi * offset * indexes / self.input_rate)
+            coarse, self._coarse_state = signal.sosfilt(self._coarse_sos, mixed, zi=self._coarse_state)
+            start = (-self._input_count) % self._coarse_decimation
+            coarse = coarse[start::self._coarse_decimation]
+            self._input_count += len(raw)
+            filtered, self._channel_state = signal.lfilter(
+                self._channel_taps, [1.0], coarse, zi=self._channel_state
+            )
+            start = (-self._fine_count) % self._fine_decimation
+            channel_iq = filtered[start::self._fine_decimation]
+            self._fine_count += len(coarse)
+            rms = float(np.sqrt(np.mean(np.abs(channel_iq) ** 2))) if channel_iq.size else 0.0
         level = float(20 * np.log10(max(rms, 1e-12) / 2048.0))
         if self._previous_iq is not None:
             channel_iq = np.concatenate(([self._previous_iq], channel_iq))

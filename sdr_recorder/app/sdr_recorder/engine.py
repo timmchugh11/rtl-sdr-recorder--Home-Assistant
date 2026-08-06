@@ -116,7 +116,10 @@ class ReceiverEngine:
                  self.settings.sample_rate_hz / 1e6)
 
     def _run(self) -> None:
-        self._set_status(running=True, error="")
+        self._set_status(
+            running=True, error="", center_frequency_hz=self.settings.center_frequency_hz,
+            sample_rate_hz=self.settings.sample_rate_hz, gain_db=self.settings.gain_db,
+        )
         retry = 1.0
         while not self._stop.is_set():
             try:

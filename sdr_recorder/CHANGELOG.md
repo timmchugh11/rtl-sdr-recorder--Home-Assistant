@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Use the exact proven PMR demodulation pipeline for a centred 1 MS/s channel.
+- Correct live status after changing centre frequency, sample rate, or gain.
+
 ## 0.2.1
 
 - Buffer brief squelch detector dropouts instead of replacing speech blocks

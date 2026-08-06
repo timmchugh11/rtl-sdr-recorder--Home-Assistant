@@ -26,7 +26,7 @@ privileged. The add-on never creates a TX buffer or changes a TX property.
 
 Speech level and recording boundaries are tuned from the Ingress Settings page:
 
-- `audio_gain`: WAV output level after NFM demodulation (`0.08` by default).
+- `audio_gain`: WAV output level after NFM demodulation (`0.20` by default).
 - `pre_roll_seconds`: audio retained before squelch opens (`0.25` by default).
 - `post_roll_seconds`: time to keep one recording open through brief carrier
   gaps and speech pauses (`2.0` by default).
